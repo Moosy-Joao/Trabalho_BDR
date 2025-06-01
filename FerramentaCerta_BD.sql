@@ -1,6 +1,3 @@
-
--- Banco de Dados exportado xampp: Ferramenta Certa 
-
 -- phpMyAdmin SQL Dump
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
@@ -280,6 +277,17 @@ DROP TABLE IF EXISTS `view_pedidos_cliente`;
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `view_pedidos_cliente`  AS SELECT `c`.`nome` AS `cliente`, `p`.`id_pedido` AS `id_pedido`, `p`.`data_pedido` AS `data_pedido`, `p`.`status` AS `status` FROM (`pedidos` `p` join `clientes` `c` on(`p`.`id_cliente` = `c`.`id_cliente`)) ;
 
 -- --------------------------------------------------------
+--
+-- Despejando dados para a tabela `funcionarios`
+--
+
+INSERT INTO `funcionarios` (`id_funcionario`, `nome`, `cpf`, `cargo`, `data_admissao`, `salario`, `email`, `telefone`, `endereco`) VALUES
+(NULL, 'João Silva', '11122233344', 'Vendedor', '2023-01-15', 2500.00, 'joao.silva@email.com', '11987654321', 'Rua das Palmeiras, 123 - São Paulo'),
+(NULL, 'Maria Oliveira', '55566677788', 'Gerente', '2022-05-20', 4500.00, 'maria.oliveira@email.com', '21912345678', 'Avenida Central, 456 - Rio de Janeiro'),
+(NULL, 'Pedro Santos', '99988877766', 'Estoquista', '2024-02-10', 1800.00, 'pedro.santos@email.com', '31955554444', 'Travessa das Flores, 789 - Belo Horizonte');
+
+-- --------------------------------------------------------
+
 
 --
 -- Estrutura para view `view_produtos_mais_vendidos`
@@ -407,6 +415,87 @@ ALTER TABLE `pedidos`
 --
 ALTER TABLE `produtos`
   ADD CONSTRAINT `produtos_ibfk_1` FOREIGN KEY (`id_fornecedor`) REFERENCES `fornecedores` (`id_fornecedor`);
+-- --------------------------------------------------------
+-- Estruturas e Lógica para Funcionários
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `funcionarios`
+--
+
+CREATE TABLE `funcionarios` (
+  `id_funcionario` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `cpf` char(11) NOT NULL,
+  `cargo` varchar(50) DEFAULT NULL,
+  `data_admissao` date DEFAULT NULL,
+  `salario` decimal(10,2) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `telefone` varchar(20) DEFAULT NULL,
+  `endereco` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Acionadores `funcionarios`
+--
+DELIMITER $$
+CREATE TRIGGER `LogAlteracoesFuncionario` AFTER UPDATE ON `funcionarios` FOR EACH ROW BEGIN
+    INSERT INTO log_funcionarios (id_funcionario, nome, cpf, cargo, data_admissao, salario, email, telefone, endereco, data_alteracao)
+    VALUES (OLD.id_funcionario, OLD.nome, OLD.cpf, OLD.cargo, OLD.data_admissao, OLD.salario, OLD.email, OLD.telefone, OLD.endereco, NOW());
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `log_funcionarios`
+--
+
+CREATE TABLE `log_funcionarios` (
+  `id_log` int(11) NOT NULL,
+  `id_funcionario` int(11) DEFAULT NULL,
+  `nome` varchar(100) DEFAULT NULL,
+  `cpf` char(11) DEFAULT NULL,
+  `cargo` varchar(50) DEFAULT NULL,
+  `data_admissao` date DEFAULT NULL,
+  `salario` decimal(10,2) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `telefone` varchar(20) DEFAULT NULL,
+  `endereco` text DEFAULT NULL,
+  `data_alteracao` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+-- Adicionando Índices e AUTO_INCREMENT para Funcionários
+
+--
+-- Índices de tabela `funcionarios`
+--
+ALTER TABLE `funcionarios`
+  ADD PRIMARY KEY (`id_funcionario`),
+  ADD UNIQUE KEY `cpf_funcionario` (`cpf`);
+
+--
+-- Índices de tabela `log_funcionarios`
+--
+ALTER TABLE `log_funcionarios`
+  ADD PRIMARY KEY (`id_log`);
+
+--
+-- AUTO_INCREMENT de tabela `funcionarios`
+--
+ALTER TABLE `funcionarios`
+  MODIFY `id_funcionario` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `log_funcionarios`
+--
+ALTER TABLE `log_funcionarios`
+  MODIFY `id_log` int(11) NOT NULL AUTO_INCREMENT;
+
+-- --------------------------------------------------------
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
