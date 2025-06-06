@@ -638,6 +638,145 @@ ALTER TABLE `servicos_funcionarios`
   ADD CONSTRAINT `servicos_funcionarios_ibfk_3` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id_cliente`);
 COMMIT;
 
+--
+-- SELECTS
+--
+
+-- 1 - Visualizar pedidos existentes (contexto inicial)
+SELECT 
+    p.id_pedido,
+    c.nome AS cliente,
+    p.data_pedido,
+    p.status,
+    f.nome AS vendedor
+FROM pedidos p
+JOIN clientes c ON p.id_cliente = c.id_cliente
+JOIN funcionarios f ON p.id_funcionario_vendedor = f.id_funcionario
+ORDER BY p.id_pedido;
+
+-- 2 - Mostrar produtos com quantidade em estoque abaixo de um limite
+SELECT
+    nome AS NomeProduto,
+    quantidade_estoque AS QuantidadeEmEstoque,
+    preco AS PrecoUnitario
+FROM
+    produtos
+WHERE
+    quantidade_estoque < 20;
+
+-- 3 - Calcular total de todos os pedidos usando a função
+SELECT 
+    p.id_pedido,
+    c.nome AS cliente,
+    p.data_pedido,
+    p.status,
+    CalcularTotalPedido(p.id_pedido) AS total_pedido
+FROM pedidos p
+JOIN clientes c ON p.id_cliente = c.id_cliente
+ORDER BY p.id_pedido;
+
+-- 4 - Top 3 maiores pedidos
+SELECT 
+    p.id_pedido,
+    c.nome AS cliente,
+    p.data_pedido,
+    CalcularTotalPedido(p.id_pedido) AS total_pedido
+FROM pedidos p
+JOIN clientes c ON p.id_cliente = c.id_cliente
+WHERE p.status = 'Pago'
+ORDER BY CalcularTotalPedido(p.id_pedido) DESC
+LIMIT 3;
+
+-- 5 - Verificar CPFs de todos os clientes
+SELECT 
+    nome,
+    cpf,
+    ValidarCPF(cpf) AS cpf_valido,
+    CASE 
+        WHEN ValidarCPF(cpf) = 1 THEN 'Válido'
+        ELSE 'Inválido'
+    END AS status_cpf
+FROM clientes
+ORDER BY ValidarCPF(cpf) DESC, nome;
+
+-- 6 - Listar apenas registros com CPF inválido (para correção)
+SELECT 
+    'Cliente' AS tipo,
+    nome,
+    cpf,
+    'CPF inválido - necessita correção' AS observacao
+FROM clientes
+WHERE ValidarCPF(cpf) = 0
+UNION ALL
+SELECT 
+    'Funcionário' AS tipo,
+    nome,
+    cpf,
+    'CPF inválido - necessita correção' AS observacao
+FROM funcionarios
+WHERE ValidarCPF(cpf) = 0;
+
+-- 7 - Comissão de todos os funcionários para maio/2025
+SELECT 
+    f.nome AS funcionario,
+    f.cargo,
+    f.status,
+    CalcularComissaoVendedor(f.id_funcionario, 5, 2025) AS comissao_maio
+FROM funcionarios f
+WHERE f.status = 'Ativo'
+ORDER BY CalcularComissaoVendedor(f.id_funcionario, 5, 2025) DESC;
+
+-- 8 - Relatório completo: cliente, pedido, total, vendedor, comissão
+SELECT 
+    c.nome AS cliente,
+    ValidarCPF(c.cpf) AS cliente_cpf_valido,
+    p.id_pedido,
+    p.data_pedido,
+    p.status,
+    CalcularTotalPedido(p.id_pedido) AS total_pedido,
+    f.nome AS vendedor,
+    CalcularComissaoVendedor(f.id_funcionario, 
+                           MONTH(p.data_pedido), 
+                           YEAR(p.data_pedido)) AS comissao_vendedor
+FROM pedidos p
+JOIN clientes c ON p.id_cliente = c.id_cliente
+JOIN funcionarios f ON p.id_funcionario_vendedor = f.id_funcionario
+WHERE p.status = 'Pago'
+ORDER BY p.data_pedido DESC;
+
+-- 9 - Análise de performance por vendedor (maio/2025)
+SELECT 
+    f.nome AS vendedor,
+    f.cargo,
+    ValidarCPF(f.cpf) AS cpf_valido,
+    COUNT(p.id_pedido) AS total_pedidos,
+    SUM(CASE WHEN p.status = 'Pago' THEN 1 ELSE 0 END) AS pedidos_pagos,
+    SUM(CASE WHEN p.status = 'Cancelado' THEN 1 ELSE 0 END) AS pedidos_cancelados,
+    ROUND(
+        (SUM(CASE WHEN p.status = 'Pago' THEN 1 ELSE 0 END) * 100.0) / 
+        NULLIF(COUNT(p.id_pedido), 0), 2
+    ) AS taxa_conversao,
+    SUM(CASE WHEN p.status = 'Pago' THEN CalcularTotalPedido(p.id_pedido) ELSE 0 END) AS total_vendas,
+    CalcularComissaoVendedor(f.id_funcionario, 5, 2025) AS comissao
+FROM funcionarios f
+LEFT JOIN pedidos p ON f.id_funcionario = p.id_funcionario_vendedor 
+    AND MONTH(p.data_pedido) = 5 
+    AND YEAR(p.data_pedido) = 2025
+WHERE f.status = 'Ativo'
+  AND f.cargo IN ('Vendedor', 'Gerente de Vendas')
+GROUP BY f.id_funcionario, f.nome, f.cargo, f.cpf
+ORDER BY total_vendas DESC;
+
+-- 10 - Contar clientes com CPF válido vs inválido
+SELECT 
+    CASE 
+        WHEN ValidarCPF(cpf) = 1 THEN 'CPF Válido'
+        ELSE 'CPF Inválido'
+    END AS status_cpf,
+    COUNT(*) AS quantidade
+FROM clientes
+GROUP BY ValidarCPF(cpf);
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
